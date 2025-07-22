@@ -1,0 +1,16 @@
+{
+  "name": "Sambhunath’s GATE Tracker",
+  "short_name": "GATE Tracker",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#e9ecef",
+  "theme_color": "#2a3b4c",
+  "description": "A personal study tracker for GATE Electrical Engineering.",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sambhunath’s GATE Tracker</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2a3b4c"/>
+</head>
+<body>
+
+    <header>
+        <h1>Sambhunath’s GATE Tracker</h1>
+        <div class="progress-container">
+            <div class="progress-bar-text">Total Progress: <span id="progress-percent">0%</span></div>
+            <div class="progress-bar">
+                <div id="progress-bar-inner"></div>
+            </div>
+        </div>
+        <p id="motivational-quote">Loading your daily dose of motivation...</p>
+    </header>
+
+    <main>
+        <div class="controls">
+             <button id="daily-done-btn">Mark Day as Done</button>
+             <button id="daily-missed-btn">Mark Day as Missed</button>
+        </div>
+
+        <h2 class="section-title">GATE EE Syllabus Tracker</h2>
+        <div id="syllabus-container">
+            </div>
+
+        <h2 class="section-title">Notes & Formulas</h2>
+        <div class="notes-section">
+            <textarea id="notes-formulas" placeholder="Jot down quick notes, formulas, and key concepts here..."></textarea>
+            <button id="save-notes-btn">Save Notes</button>
+        </div>
+    </main>
+
+    <footer>
+        <p>Keep pushing, you're doing great!</p>
+    </footer>
+
+    <script src="script.js"></script>
+    <script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/sw.js').then(registration => {
+                console.log('ServiceWorker registration successful with scope: ', registration.scope);
+            }, err => {
+                console.log('ServiceWorker registration failed: ', err);
+            });
+        });
+    }
+</script>
+</body>
+</html>
