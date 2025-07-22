@@ -1,217 +1,178 @@
-document.addEventListener('DOMContentLoaded', () => {
-    // --- INITIAL DATA & CONFIGURATION ---
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
+import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
+import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 
-    const motivationalQuotes = [
-        "Believe you can and you're halfway there.",
-        "The secret to getting ahead is getting started.",
-        "The future belongs to those who believe in the beauty of their dreams.",
-        "Success is not final, failure is not fatal: it is the courage to continue that counts.",
-        "Don't watch the clock; do what it does. Keep going."
-    ];
+// =========================================================================================
+// IMPORTANT ACTION REQUIRED: Paste your Firebase project configuration here!
+// You can get this from your project's settings in the Firebase Console.
+// =========================================================================================
+const firebaseConfig = {
+  apiKey: "AIzaSyBwf9CYsl3SO3nD56al3ykKlXV1BHtzwbg",
+  authDomain: "gate-study-tracker.firebaseapp.com",
+  projectId: "gate-study-tracker",
+  storageBucket: "gate-study-tracker.firebasestorage.app",
+  messagingSenderId: "213391184427",
+  appId: "1:213391184427:web:3b1505832d6cffb9cc506e"
+};
 
-    // Default syllabus structure
-    const initialSyllabus = {
-        "Engineering Mathematics": ["Linear Algebra", "Calculus", "Differential Equations", "Complex Variables", "Probability and Statistics"],
-        "Network Theory": ["Network Analysis", "Network Theorems", "Two-Port Networks", "Transient Analysis"],
-        "Signals & Systems": ["Continuous-time signals", "LTI systems", "Fourier Series", "Fourier Transform", "Laplace Transform", "Z-Transform"],
-        "Control Systems": ["Basic Control System Components", "Feedback Principle", "Stability Analysis (Routh-Hurwitz, Nyquist)", "Root Locus", "Bode Plots"],
-        "Electrical Machines": ["DC Machines", "Transformers", "Three-phase Induction Motors", "Synchronous Machines"],
-        "Power Systems": ["Power Generation Concepts", "Transmission and Distribution", "Fault Analysis", "Load Flow Studies", "Stability"],
-        "Power Electronics": ["Diode Rectifiers", "Thyristors", "DC-DC Converters", "Inverters"],
-        "Analog & Digital Electronics": ["Diodes, BJTs, MOSFETs", "Operational Amplifiers", "Boolean Algebra", "Combinational and Sequential Circuits", "ADC & DAC"],
-        "Electromagnetics": ["Maxwell's Equations", "Wave Propagation", "Transmission Lines", "Antennas"],
-        "General Aptitude": ["Verbal Ability", "Numerical Ability", "Quantitative Aptitude"]
-    };
+// --- DATA CONFIGURATION ---
+const SUBJECTS = [
+    'NT', 'S & S', 'AEC', 'DE', 'CS', 'EMT', 
+    'EEM', 'EM I & II', 'PS', 'PE', 'MATH', 'GA'
+];
 
-    let studyData = {};
+const TASK_COLUMNS = [
+    'Videos', 'Notes', 'Book Examples', 'DPPs', 'Workbook Exercises', 
+    'PYQs', 'Test Series', 'Bites & Bytes', 'ISRO/ESE PYQs', 
+    'Revision 1', 'Revision 2', 'ME Short Notes'
+];
 
-    // --- CORE FUNCTIONS ---
+const TOPICS = {
+    'NT': ['Basics', 'Theorems', 'Transient Analysis', 'Two-Port Networks', 'AC Analysis'],
+    'S & S': ['Signal Types', 'LTI Systems', 'Fourier Series', 'Fourier Transform', 'Laplace Transform', 'Z-Transform'],
+    'AEC': ['Diodes', 'BJT', 'FET/MOSFET', 'Op-Amps', 'Oscillators'],
+    'DE': ['Number Systems', 'Logic Gates', 'Combinational Circuits', 'Sequential Circuits', 'ADC/DAC'],
+    'CS': ['AM/FM', 'Sampling', 'PCM/DM', 'Digital Modulation', 'Information Theory'],
+    'EMT': ['Vector Calculus', 'Electrostatics', 'Magnetostatics', 'Maxwell\'s Equations', 'Wave Propagation'],
+    'EEM': ['Basics of Measurement', 'Bridges and Potentiometers', 'Measuring Instruments', 'CRO', 'Transducers'],
+    'EM I & II': ['Transformers', 'DC Machines', 'Induction Machines', 'Synchronous Machines'],
+    'PS': ['Power Generation', 'Transmission & Distribution', 'Fault Analysis', 'Stability', 'Load Flow'],
+    'PE': ['Power Diodes', 'Thyristors', 'Choppers', 'Inverters', 'Drives'],
+    'MATH': ['Linear Algebra', 'Calculus', 'Differential Equations', 'Complex Variables', 'Probability'],
+    'GA': ['Verbal Ability', 'Numerical Ability', 'Logical Reasoning', 'Data Interpretation']
+};
 
-    function initializeApp() {
-        loadData();
-        renderSyllabus();
-        updateProgress();
-        displayRandomQuote();
-        loadNotes();
-        addEventListeners();
-    }
-    
-    // Renders the entire syllabus structure in the HTML
-    function renderSyllabus() {
-        const container = document.getElementById('syllabus-container');
-        container.innerHTML = ''; // Clear existing content
+// --- FIREBASE INITIALIZATION ---
+let app, db, auth, userId;
+let unsubscribeSnapshot = null;
 
-        for (const subject in studyData) {
-            const section = document.createElement('div');
-            section.className = 'subject-section';
+// --- DOM ELEMENTS ---
+const homePage = document.getElementById('home-page');
+const subjectPage = document.getElementById('subject-page');
+const subjectGrid = document.getElementById('subject-grid');
+const backButton = document.getElementById('back-button');
+const subjectTitle = document.getElementById('subject-title');
+const subjectTable = document.getElementById('subject-table');
+const tableContainer = document.getElementById('table-container');
+const loader = document.getElementById('loader');
 
-            // Create header (for accordion)
-            const header = document.createElement('div');
-            header.className = 'subject-header';
-            header.innerHTML = `${subject} <span class="arrow">▼</span>`;
-            header.onclick = () => {
-                const content = section.querySelector('.subject-content');
-                if (content.style.maxHeight) {
-                    content.style.maxHeight = null;
-                    content.style.padding = "0 15px";
-                    header.querySelector('.arrow').style.transform = "rotate(0deg)";
-                } else {
-                    // Set padding before expanding for smooth animation
-                    content.style.padding = "15px";
-                    content.style.maxHeight = content.scrollHeight + "px";
-                    header.querySelector('.arrow').style.transform = "rotate(-180deg)";
-                }
-            };
+// --- APPLICATION LOGIC ---
 
-            // Create content area
-            const content = document.createElement('div');
-            content.className = 'subject-content';
-
-            const topicList = document.createElement('ul');
-            topicList.className = 'topic-list';
-
-            studyData[subject].topics.forEach((topic, index) => {
-                const li = document.createElement('li');
-                li.className = 'topic-item';
-
-                const checkbox = document.createElement('input');
-                checkbox.type = 'checkbox';
-                checkbox.checked = topic.completed;
-                checkbox.id = `topic-${subject}-${index}`;
-                checkbox.onchange = () => toggleTopicCompletion(subject, index);
-
-                const label = document.createElement('label');
-                label.htmlFor = `topic-${subject}-${index}`;
-                label.textContent = topic.name;
-                if(topic.completed) label.classList.add('completed');
-                
-                const deleteBtn = document.createElement('button');
-                deleteBtn.textContent = '✖';
-                deleteBtn.className = 'delete-btn';
-                deleteBtn.onclick = () => removeTopic(subject, index);
-
-                li.appendChild(checkbox);
-                li.appendChild(label);
-                li.appendChild(deleteBtn);
-                topicList.appendChild(li);
-            });
-
-            // Add new topic input form
-            const editControls = document.createElement('div');
-            editControls.className = 'edit-controls';
-            
-            const newTopicInput = document.createElement('input');
-            newTopicInput.type = 'text';
-            newTopicInput.placeholder = 'Add new topic...';
-            
-            const addBtn = document.createElement('button');
-            addBtn.textContent = 'Add';
-            addBtn.onclick = () => addTopic(subject, newTopicInput);
-            
-            editControls.appendChild(newTopicInput);
-            editControls.appendChild(addBtn);
-
-            content.appendChild(topicList);
-            content.appendChild(editControls);
-            section.appendChild(header);
-            section.appendChild(content);
-            container.appendChild(section);
-        }
-    }
-
-    // Toggles a topic's completion status
-    function toggleTopicCompletion(subject, index) {
-        studyData[subject].topics[index].completed = !studyData[subject].topics[index].completed;
-        saveData();
-        updateProgress();
-        // Re-render to update style of the label
-        renderSyllabus(); 
-    }
-    
-    // Adds a new topic to a subject
-    function addTopic(subject, inputElement) {
-        const topicName = inputElement.value.trim();
-        if (topicName) {
-            studyData[subject].topics.push({ name: topicName, completed: false });
-            inputElement.value = '';
-            saveData();
-            renderSyllabus();
-        }
-    }
-    
-    // Removes a topic from a subject
-    function removeTopic(subject, index) {
-        if(confirm(`Are you sure you want to delete "${studyData[subject].topics[index].name}"?`)) {
-            studyData[subject].topics.splice(index, 1);
-            saveData();
-            renderSyllabus();
-            updateProgress();
-        }
-    }
-
-    // Updates the main progress bar
-    function updateProgress() {
-        let totalTopics = 0;
-        let completedTopics = 0;
-
-        for (const subject in studyData) {
-            totalTopics += studyData[subject].topics.length;
-            completedTopics += studyData[subject].topics.filter(t => t.completed).length;
-        }
-
-        const percentage = totalTopics > 0 ? Math.round((completedTopics / totalTopics) * 100) : 0;
+async function initializeAppLogic() {
+    try {
+        app = initializeApp(firebaseConfig);
+        db = getFirestore(app);
+        auth = getAuth(app);
         
-        document.getElementById('progress-percent').textContent = `${percentage}%`;
-        document.getElementById('progress-bar-inner').style.width = `${percentage}%`;
-    }
-
-    // Displays a random motivational quote
-    function displayRandomQuote() {
-        const quote = motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)];
-        document.getElementById('motivational-quote').textContent = quote;
-    }
-    
-    // --- DATA PERSISTENCE (using Local Storage) ---
-    
-    function saveData() {
-        localStorage.setItem('gateStudyData', JSON.stringify(studyData));
-    }
-    
-    function loadData() {
-        const savedData = localStorage.getItem('gateStudyData');
-        if (savedData) {
-            studyData = JSON.parse(savedData);
-        } else {
-            // First time use: structure the initial data
-            studyData = {};
-            for (const subject in initialSyllabus) {
-                studyData[subject] = {
-                    topics: initialSyllabus[subject].map(name => ({ name: name, completed: false }))
-                };
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                userId = user.uid;
+                console.log("User authenticated with UID:", userId);
+                renderHomePage();
+            } else {
+                console.log("User not signed in, attempting anonymous sign-in.");
+                signInAnonymously(auth).catch(error => console.error("Anonymous sign-in failed:", error));
             }
-        }
+        });
+    } catch (error) {
+        console.error("Firebase Initialization Error:", error);
+        document.getElementById('main-content').innerHTML = `<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg" role="alert"><strong class="font-bold">Error!</strong> <span class="block sm:inline">Could not connect to the database.</span></div>`;
     }
-    
-    function saveNotes() {
-        const notes = document.getElementById('notes-formulas').value;
-        localStorage.setItem('gateNotes', notes);
-        alert('Notes saved!');
-    }
-    
-    function loadNotes() {
-        const savedNotes = localStorage.getItem('gateNotes');
-        if (savedNotes) {
-            document.getElementById('notes-formulas').value = savedNotes;
-        }
-    }
-    
-    // --- EVENT LISTENERS ---
-    
-    function addEventListeners() {
-        document.getElementById('save-notes-btn').addEventListener('click', saveNotes);
-        // Note: other event listeners are added dynamically during render
-    }
+}
 
-    // --- START THE APP ---
-    initializeApp();
+function renderHomePage() {
+    subjectGrid.innerHTML = '';
+    SUBJECTS.forEach(subject => {
+        const card = document.createElement('div');
+        card.className = 'bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg cursor-pointer transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 hover:bg-purple-50 dark:hover:bg-gray-700';
+        card.innerHTML = `<h3 class="text-lg font-bold text-center text-purple-700 dark:text-purple-300">${subject}</h3>`;
+        card.addEventListener('click', () => showSubjectPage(subject));
+        subjectGrid.appendChild(card);
+    });
+    homePage.classList.remove('hidden');
+    subjectPage.classList.add('hidden');
+}
+
+function showSubjectPage(subject) {
+    homePage.classList.add('hidden');
+    subjectPage.classList.remove('hidden');
+    subjectTitle.textContent = subject;
+    loader.style.display = 'flex';
+    tableContainer.classList.add('hidden');
+    subjectTable.querySelector('thead').innerHTML = '';
+    subjectTable.querySelector('tbody').innerHTML = '';
+    listenToSubjectData(subject);
+}
+
+function listenToSubjectData(subject) {
+    if (unsubscribeSnapshot) {
+        unsubscribeSnapshot();
+    }
+    const subjectDocRef = doc(db, `users/${userId}/gate-prep`, subject);
+
+    unsubscribeSnapshot = onSnapshot(subjectDocRef, (docSnap) => {
+        let subjectData = docSnap.exists() ? docSnap.data() : {};
+        renderSubjectTable(subject, subjectData);
+        loader.style.display = 'none';
+        tableContainer.classList.remove('hidden');
+    }, (error) => {
+        console.error("Error fetching subject data:", error);
+        loader.innerText = "Error loading data.";
+    });
+}
+
+function renderSubjectTable(subject, data) {
+    const thead = subjectTable.querySelector('thead');
+    const tbody = subjectTable.querySelector('tbody');
+    let headerHtml = '<tr><th scope="col" class="sticky-col px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Topic</th>';
+    TASK_COLUMNS.forEach(task => {
+        headerHtml += `<th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">${task}</th>`;
+    });
+    headerHtml += '</tr>';
+    thead.innerHTML = headerHtml;
+
+    tbody.innerHTML = '';
+    const subjectTopics = TOPICS[subject] || [];
+    subjectTopics.forEach(topic => {
+        const row = document.createElement('tr');
+        row.className = "hover:bg-gray-50 dark:hover:bg-gray-700";
+        let rowHtml = `<td class="sticky-col px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">${topic}</td>`;
+        TASK_COLUMNS.forEach(task => {
+            const isChecked = data[topic] && data[topic][task];
+            rowHtml += `<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><input type="checkbox" data-subject="${subject}" data-topic="${topic}" data-task="${task}" class="h-5 w-5 rounded-md text-purple-600 bg-gray-200 border-gray-300 focus:ring-purple-500 cursor-pointer" ${isChecked ? 'checked' : ''}></td>`;
+        });
+        row.innerHTML = rowHtml;
+        tbody.appendChild(row);
+    });
+    
+    tbody.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+        checkbox.addEventListener('change', handleCheckboxChange);
+    });
+}
+
+async function handleCheckboxChange(event) {
+    const { subject, topic, task } = event.target.dataset;
+    const isChecked = event.target.checked;
+    const subjectDocRef = doc(db, `users/${userId}/gate-prep`, subject);
+
+    try {
+        const updateData = { [`${topic}.${task}`]: isChecked };
+        await setDoc(subjectDocRef, updateData, { merge: true });
+        console.log("Firestore updated successfully.");
+    } catch (error) {
+        console.error("Error updating Firestore:", error);
+        event.target.checked = !isChecked; 
+        alert("Could not save your progress. Please try again.");
+    }
+}
+
+backButton.addEventListener('click', () => {
+    if (unsubscribeSnapshot) {
+        unsubscribeSnapshot();
+        unsubscribeSnapshot = null;
+    }
+    renderHomePage();
 });
+
+// --- START THE APP ---
+document.addEventListener('DOMContentLoaded', initializeAppLogic);
