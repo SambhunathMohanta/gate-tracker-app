@@ -2,39 +2,25 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebas
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
 import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 
-// =========================================================================================
-// IMPORTANT ACTION REQUIRED: Paste your Firebase project configuration here!
-// You can get this from your project's settings in the Firebase Console.
-// =========================================================================================
-<script type="module">
-  // Import the functions you need from the SDKs you need
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
-  // TODO: Add SDKs for Firebase products that you want to use
-  // https://firebase.google.com/docs/web/setup#available-libraries
-
-  // Your web app's Firebase configuration
-  const firebaseConfig = {
-    apiKey: "AIzaSyBwf9CYsl3SO3nD56al3ykKlXV1BHtzwbg",
+// Your web app's Firebase configuration
+const firebaseConfig = {
+    apiKey: "AIzaSyBwf9CYsl3SO3nD56al3ykKlXV", // This is the corrected API Key
     authDomain: "gate-study-tracker.firebaseapp.com",
     projectId: "gate-study-tracker",
-    storageBucket: "gate-study-tracker.firebasestorage.app",
+    storageBucket: "gate-study-tracker.appspot.com",
     messagingSenderId: "213391184427",
     appId: "1:213391184427:web:3b1505832d6cffb9cc506e"
-  };
-
-  // Initialize Firebase
-  const app = initializeApp(firebaseConfig);
-</script>
+};
 
 // --- DATA CONFIGURATION ---
 const SUBJECTS = [
-    'NT', 'S & S', 'AEC', 'DE', 'CS', 'EMT', 
+    'NT', 'S & S', 'AEC', 'DE', 'CS', 'EMT',
     'EEM', 'EM I & II', 'PS', 'PE', 'MATH', 'GA'
 ];
 
 const TASK_COLUMNS = [
-    'Videos', 'Notes', 'Book Examples', 'DPPs', 'Workbook Exercises', 
-    'PYQs', 'Test Series', 'Bites & Bytes', 'ISRO/ESE PYQs', 
+    'Videos', 'Notes', 'Book Examples', 'DPPs', 'Workbook Exercises',
+    'PYQs', 'Test Series', 'Bites & Bytes', 'ISRO/ESE PYQs',
     'Revision 1', 'Revision 2', 'ME Short Notes'
 ];
 
@@ -74,7 +60,7 @@ async function initializeAppLogic() {
         app = initializeApp(firebaseConfig);
         db = getFirestore(app);
         auth = getAuth(app);
-        
+
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 userId = user.uid;
@@ -155,7 +141,7 @@ function renderSubjectTable(subject, data) {
         row.innerHTML = rowHtml;
         tbody.appendChild(row);
     });
-    
+
     tbody.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
         checkbox.addEventListener('change', handleCheckboxChange);
     });
@@ -172,7 +158,7 @@ async function handleCheckboxChange(event) {
         console.log("Firestore updated successfully.");
     } catch (error) {
         console.error("Error updating Firestore:", error);
-        event.target.checked = !isChecked; 
+        event.target.checked = !isChecked;
         alert("Could not save your progress. Please try again.");
     }
 }
