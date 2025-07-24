@@ -1,15 +1,16 @@
+// All imports MUST be at the very top of the file.
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
 import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 
-// Your web app's Firebase configuration
+// Your new, correct Firebase configuration
 const firebaseConfig = {
-    apiKey: "AIzaSyBwf9CYsl3SO3nD56al3ykKlXV", // This is the corrected API Key
-    authDomain: "gate-study-tracker.firebaseapp.com",
-    projectId: "gate-study-tracker",
-    storageBucket: "gate-study-tracker.appspot.com",
-    messagingSenderId: "213391184427",
-    appId: "1:213391184427:web:3b1505832d6cffb9cc506e"
+    apiKey: "AIzaSyA_9LWNHTUYjW9o5ZgBoEfQqdtYhIUIX0s",
+    authDomain: "gate-tracker-final.firebaseapp.com",
+    projectId: "gate-tracker-final",
+    storageBucket: "gate-tracker-final.appspot.com",
+    messagingSenderId: "586102213734",
+    appId: "1:586102213734:web:88fa9b3a3f0e421b9131a7"
 };
 
 // --- DATA CONFIGURATION ---
